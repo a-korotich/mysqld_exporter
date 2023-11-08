@@ -37,7 +37,8 @@ import (
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
 	"github.com/percona/mysqld_exporter/collector"
-	"github.com/percona/mysqld_exporter/config"
+	pcl "github.com/percona/mysqld_exporter/percona/perconacollector"
+	dba "github.com/a-korotich/mysqld_exporter/collector"
 )
 
 var (
@@ -101,7 +102,6 @@ var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeInfoSchemaInnodbTablespaces{}:         false,
 	collector.ScrapeInnodbMetrics{}:                       false,
 	collector.ScrapeAutoIncrementColumns{}:                false,
-	collector.ScrapeStatColumnCapacityColumns{}:           false,
 	collector.ScrapeBinlogSize{}:                          false,
 	collector.ScrapePerfTableIOWaits{}:                    false,
 	collector.ScrapePerfIndexIOWaits{}:                    false,
@@ -130,11 +130,12 @@ var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeHeartbeat{}:                           false,
 	collector.ScrapeSlaveHosts{}:                          false,
 	collector.ScrapeReplicaHost{}:                         false,
-	collector.ScrapeCustomQuery{Resolution: collector.HR}: false, // by Percona
-	collector.ScrapeCustomQuery{Resolution: collector.MR}: false, // by Percona
-	collector.ScrapeCustomQuery{Resolution: collector.LR}: false, // by Percona
-	collector.NewStandardGo():                             false, // by Percona
-	collector.NewStandardProcess():                        false, // by Percona
+	pcl.ScrapeCustomQuery{Resolution: pcl.HR}:             false,
+	pcl.ScrapeCustomQuery{Resolution: pcl.MR}:             false,
+	pcl.ScrapeCustomQuery{Resolution: pcl.LR}:             false,
+	pcl.NewStandardGo():                                   false,
+	pcl.NewStandardProcess():                              false,
+	dba.ScrapeStatColumnCapacityColumns():                 false,
 }
 
 func filterScrapers(scrapers []collector.Scraper, collectParams []string) []collector.Scraper {
@@ -153,7 +154,7 @@ var scrapersLr = map[collector.Scraper]struct{}{
 	collector.ScrapePlugins{}:                     {},
 	collector.ScrapeTableSchema{}:                 {},
 	collector.ScrapeAutoIncrementColumns{}:        {},
-	collector.ScrapeStatColumnCapacityColumns{}:   {},
+ 
 	collector.ScrapeBinlogSize{}:                  {},
 	collector.ScrapePerfTableIOWaits{}:            {},
 	collector.ScrapePerfIndexIOWaits{}:            {},
