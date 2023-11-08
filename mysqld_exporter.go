@@ -36,8 +36,8 @@ import (
 	"github.com/prometheus/exporter-toolkit/web"
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
-	"github.com/percona/mysqld_exporter/collector"
-	pcl "github.com/percona/mysqld_exporter/percona/perconacollector"
+	"github.com/a-korotich/mysqld_exporter/collector"
+	pcl "github.com/a-korotich/mysqld_exporter/percona/perconacollector"
 	dba "github.com/a-korotich/mysqld_exporter/dba/dbacollector"
 )
 
