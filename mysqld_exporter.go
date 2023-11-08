@@ -101,6 +101,7 @@ var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeInfoSchemaInnodbTablespaces{}:         false,
 	collector.ScrapeInnodbMetrics{}:                       false,
 	collector.ScrapeAutoIncrementColumns{}:                false,
+	collector.ScrapeStatColumnCapacityColumns{}:           false,
 	collector.ScrapeBinlogSize{}:                          false,
 	collector.ScrapePerfTableIOWaits{}:                    false,
 	collector.ScrapePerfIndexIOWaits{}:                    false,
@@ -146,10 +147,55 @@ func filterScrapers(scrapers []collector.Scraper, collectParams []string) []coll
 			filters[param] = true
 		}
 
-		for _, scraper := range scrapers {
-			if filters[scraper.Name()] {
-				filteredScrapers = append(filteredScrapers, scraper)
-			}
+// TODO Remove
+var scrapersLr = map[collector.Scraper]struct{}{
+	collector.ScrapeGlobalVariables{}:             {},
+	collector.ScrapePlugins{}:                     {},
+	collector.ScrapeTableSchema{}:                 {},
+	collector.ScrapeAutoIncrementColumns{}:        {},
+	collector.ScrapeStatColumnCapacityColumns{}:   {},
+	collector.ScrapeBinlogSize{}:                  {},
+	collector.ScrapePerfTableIOWaits{}:            {},
+	collector.ScrapePerfIndexIOWaits{}:            {},
+	collector.ScrapePerfFileInstances{}:           {},
+	collector.ScrapeUserStat{}:                    {},
+	collector.ScrapeTableStat{}:                   {},
+	collector.ScrapePerfEventsStatements{}:        {},
+	collector.ScrapeClientStat{}:                  {},
+	collector.ScrapeInfoSchemaInnodbTablespaces{}: {},
+	collector.ScrapeEngineTokudbStatus{}:          {},
+	collector.ScrapeHeartbeat{}:                   {},
+	pcl.ScrapeCustomQuery{Resolution: pcl.LR}:     {},
+}
+
+func parseMycnf(config interface{}, logger log.Logger) (string, error) {
+	var dsn string
+	opts := ini.LoadOptions{
+		// MySQL ini file can have boolean keys.
+		// PMM-2469: my.cnf can have boolean keys.
+		AllowBooleanKeys: true,
+	}
+	cfg, err := ini.LoadSources(opts, config)
+	if err != nil {
+		return dsn, fmt.Errorf("failed reading ini file: %s", err)
+	}
+	user := cfg.Section("client").Key("user").String()
+	password := cfg.Section("client").Key("password").String()
+	if user == "" {
+		return dsn, fmt.Errorf("no user specified under [client] in %s", config)
+	}
+	host := cfg.Section("client").Key("host").MustString("localhost")
+	port := cfg.Section("client").Key("port").MustUint(3306)
+	socket := cfg.Section("client").Key("socket").String()
+	sslCA := cfg.Section("client").Key("ssl-ca").String()
+	sslCert := cfg.Section("client").Key("ssl-cert").String()
+	sslKey := cfg.Section("client").Key("ssl-key").String()
+	passwordPart := ""
+	if password != "" {
+		passwordPart = ":" + password
+	} else {
+		if sslKey == "" {
+			return dsn, fmt.Errorf("password or ssl-key should be specified under [client] in %s", config)
 		}
 	}
 	if len(filteredScrapers) == 0 {
