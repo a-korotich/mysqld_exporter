@@ -90,7 +90,7 @@ var _ promhttp.Logger = &errLogger{}
 
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
-	dba.ScrapeStatColumnCapacityColumns{}:                 true,
+	dba.ScrapeStatColumnCapacityColumns{}:                 false,
 	pcl.ScrapeGlobalStatus{}:                              false,
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
