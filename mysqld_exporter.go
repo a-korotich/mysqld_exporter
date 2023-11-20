@@ -90,7 +90,8 @@ var _ promhttp.Logger = &errLogger{}
 
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
-	collector.PScrapeGlobalStatus{}:                       false, // by Percona
+	dba.ScrapeStatColumnCapacityColumns{}:                 true,
+	pcl.ScrapeGlobalStatus{}:                              false,
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
 	collector.ScrapePlugins{}:                             false,
@@ -135,7 +136,6 @@ var scrapers = map[collector.Scraper]bool{
 	pcl.ScrapeCustomQuery{Resolution: pcl.LR}:             false,
 	pcl.NewStandardGo():                                   false,
 	pcl.NewStandardProcess():                              false,
-	dba.ScrapeStatColumnCapacityColumns():                 false,
 }
 
 func filterScrapers(scrapers []collector.Scraper, collectParams []string) []collector.Scraper {
@@ -154,7 +154,6 @@ var scrapersLr = map[collector.Scraper]struct{}{
 	collector.ScrapePlugins{}:                     {},
 	collector.ScrapeTableSchema{}:                 {},
 	collector.ScrapeAutoIncrementColumns{}:        {},
- 
 	collector.ScrapeBinlogSize{}:                  {},
 	collector.ScrapePerfTableIOWaits{}:            {},
 	collector.ScrapePerfIndexIOWaits{}:            {},
