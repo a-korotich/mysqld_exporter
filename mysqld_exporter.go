@@ -95,7 +95,6 @@ var (
 		"Ignore certificate and server verification when using a tls connection.",
 	).Bool()
 	dsn string
-	foo = ''
 )
 
 // SQL queries and parameters.
@@ -122,10 +121,9 @@ type basicAuthHandler struct {
 func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	user, password, ok := r.BasicAuth()
 	if !ok || password != h.password || user != h.user {
-	// 	w.Header().Set("WWW-Authenticate", "Basic realm=\"metrics\"")
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"metrics\"")
 	// 	http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 	// 	return
-		foo = "bar"
 	}
 	h.handler(w, r)
 }
