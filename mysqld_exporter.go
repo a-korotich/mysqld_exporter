@@ -71,15 +71,61 @@ var (
 		"Collect all metrics.",
 	).Default("false").Bool()
 
-	// This adds the following flags: `--web.listen-address`, `--web.config.file`, `--web.systemd-socket (linux-only)`
-	toolkitFlags = webflag.AddFlags(kingpin.CommandLine, ":9104")
-	c            = config.MySqlConfigHandler{
-		Config: &config.Config{},
-	}
+	mysqlSSLCAFile = kingpin.Flag(
+		"mysql.ssl-ca-file",
+		"SSL CA file for the MySQL connection",
+	).ExistingFile()
+
+	mysqlSSLCertFile = kingpin.Flag(
+		"mysql.ssl-cert-file",
+		"SSL Cert file for the MySQL connection",
+	).ExistingFile()
+
+	mysqlSSLKeyFile = kingpin.Flag(
+		"mysql.ssl-key-file",
+		"SSL Key file for the MySQL connection",
+	).ExistingFile()
+
+	mysqlSSLSkipVerify = kingpin.Flag(
+		"mysql.ssl-skip-verify",
+		"Skip cert verification when connection to MySQL",
+	).Bool()
+	tlsInsecureSkipVerify = kingpin.Flag(
+		"tls.insecure-skip-verify",
+		"Ignore certificate and server verification when using a tls connection.",
+	).Bool()
+	dsn string
 )
 
-type errLogger struct {
-	logger *slog.Logger
+// SQL queries and parameters.
+const (
+	versionQuery = `SELECT @@version`
+
+	// System variable params formatting.
+	// See: https://github.com/go-sql-driver/mysql#system-variables
+	sessionSettingsParam = `log_slow_filter=%27tmp_table_on_disk,filesort_on_disk%27`
+	timeoutParam         = `lock_wait_timeout=%d`
+)
+
+type webAuth struct {
+	User     string `yaml:"server_user,omitempty"`
+	Password string `yaml:"server_password,omitempty"`
+}
+
+type basicAuthHandler struct {
+	handler  http.HandlerFunc
+	user     string
+	password string
+}
+
+func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	user, password, ok := r.BasicAuth()
+	// if !ok || password != h.password || user != h.user {
+	// 	w.Header().Set("WWW-Authenticate", "Basic realm=\"metrics\"")
+	// 	http.Error(w, "Invalid username or password", http.StatusUnauthorized)
+	// 	return
+	// }
+	h.handler(w, r)
 }
 
 func (el *errLogger) Println(v ...interface{}) {
@@ -90,7 +136,7 @@ var _ promhttp.Logger = &errLogger{}
 
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
-	dba.ScrapeStatColumnCapacityColumns{}:                 false,
+	dba.ScrapeStatColumnCapacityColumns{}:                 true,
 	pcl.ScrapeGlobalStatus{}:                              false,
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
