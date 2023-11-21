@@ -124,7 +124,7 @@ func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 	w.Header().Set("WWW-Authenticate", "Basic realm=\"metrics\"")
 	// 	http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 	// 	return
-		continue
+		break
 	}
 	h.handler(w, r)
 }
