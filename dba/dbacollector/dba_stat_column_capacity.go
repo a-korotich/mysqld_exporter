@@ -4,13 +4,12 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/go-kit/log"
 	cl "github.com/a-korotich/mysqld_exporter/collector"
+	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 const (
-	dba = "dba"
 	statColumnCapacityQuery = `
 		SELECT
 		   db_name table_schema,
@@ -18,7 +17,8 @@ const (
 		   column_name,
 		   ratio capacity
 		FROM dba.stat_column_capacity
-`)
+`
+)
 
 var (
 	globalStatColumnCapacityDesc = prometheus.NewDesc(
@@ -55,7 +55,7 @@ func (ScrapeStatColumnCapacityColumns) Scrape(ctx context.Context, db *sql.DB, c
 
 	var (
 		schema, table, column string
-		value            float64
+		value                 float64
 	)
 
 	for columnCapacityRows.Next() {
