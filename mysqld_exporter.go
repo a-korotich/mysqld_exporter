@@ -42,8 +42,8 @@ import (
 	"gopkg.in/ini.v1"
 
 	"github.com/a-korotich/mysqld_exporter/collector"
-	pcl "github.com/a-korotich/mysqld_exporter/percona/perconacollector"
 	dba "github.com/a-korotich/mysqld_exporter/dba/dbacollector"
+	pcl "github.com/a-korotich/mysqld_exporter/percona/perconacollector"
 )
 
 var (
@@ -158,6 +158,7 @@ func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
 	dba.ScrapeStatColumnCapacityColumns{}:                 false,
+	dba.ScrapeUsingPartitions{}:                           false,
 	pcl.ScrapeGlobalStatus{}:                              false,
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
