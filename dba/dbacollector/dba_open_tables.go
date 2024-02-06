@@ -61,7 +61,7 @@ func (ScrapeOpenTables) Scrape(ctx context.Context, db *sql.DB, ch chan<- promet
 		}
 		ch <- prometheus.MustNewConstMetric(
 			globalOpenTablesDesc, prometheus.GaugeValue, value,
-			schema, table,
+			schema, table, name_blocked,
 		)
 	}
 	return nil
