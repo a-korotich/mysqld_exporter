@@ -19,7 +19,7 @@ var (
 	globalOpenTablesDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(cl.Namespace, dba, "open_tables"),
 		"lists tables that are currently open in the table cache",
-		[]string{"schema", "table"}, nil,
+		[]string{"schema", "table", "name_blocked"}, nil,
 	)
 )
 
@@ -49,19 +49,19 @@ func (ScrapeOpenTables) Scrape(ctx context.Context, db *sql.DB, ch chan<- promet
 	defer openTablesRows.Close()
 
 	var (
-		schema, table string
-		value         float64
+		schema, table, name_blocked string
+		value                       float64
 	)
 
 	for openTablesRows.Next() {
 		if err := openTablesRows.Scan(
-			&schema, &table, &value,
+			&schema, &table, &name_blocked, &value,
 		); err != nil {
 			return err
 		}
 		ch <- prometheus.MustNewConstMetric(
 			globalOpenTablesDesc, prometheus.GaugeValue, value,
-			schema, table,
+			schema, table, name_blocked,
 		)
 	}
 	return nil
