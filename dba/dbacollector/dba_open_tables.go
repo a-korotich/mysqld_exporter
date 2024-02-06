@@ -55,13 +55,13 @@ func (ScrapeOpenTables) Scrape(ctx context.Context, db *sql.DB, ch chan<- promet
 
 	for openTablesRows.Next() {
 		if err := openTablesRows.Scan(
-			&schema, &table, &name_blocked, &value,
+			&schema, &table, &value, &name_blocked,
 		); err != nil {
 			return err
 		}
 		ch <- prometheus.MustNewConstMetric(
 			globalOpenTablesDesc, prometheus.GaugeValue, value,
-			schema, table, name_blocked,
+			schema, table,
 		)
 	}
 	return nil
