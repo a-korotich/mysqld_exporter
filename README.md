@@ -68,6 +68,7 @@ collect.info_schema.innodb_cmpmem                            | 5.5           | C
 collect.info_schema.processlist                              | 5.1           | Collect thread state counts from information_schema.processlist.
 collect.stat_column_capacity                                 | 5.1           | Collect data from dba.stat_column_capacity
 collect.using_partitions                                     | 5.1           | Collect tables where partitions are used
+collect.open_tables                                          | 5.1           | Collect tables that are currently open in the table cache                                    
 collect.info_schema.processlist.min_time                     | 5.1           | Minimum time a thread must be in each state to be counted. (default: 0)
 collect.info_schema.query_response_time                      | 5.5           | Collect query response time distribution if query_response_time_stats is ON.
 collect.info_schema.replica_host                             | 5.6           | Collect metrics from information_schema.replica_host_status.
