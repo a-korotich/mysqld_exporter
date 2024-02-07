@@ -3,10 +3,10 @@ module github.com/a-korotich/mysqld_exporter
 go 1.21
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.0
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/go-kit/log v0.2.1
 	github.com/go-sql-driver/mysql v1.7.1
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/montanaflynn/stats v0.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.12.2
