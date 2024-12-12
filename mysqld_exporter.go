@@ -159,6 +159,7 @@ func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 var scrapers = map[collector.Scraper]bool{
 	dba.ScrapeStatColumnCapacityColumns{}:                 false,
 	dba.ScrapeUsingPartitions{}:                           false,
+	dba.ScrapePartitionsToRemove{}:						   false,
 	dba.ScrapeOpenTables{}:                                false,
 	pcl.ScrapeGlobalStatus{}:                              false,
 	collector.ScrapeGlobalStatus{}:                        false,
