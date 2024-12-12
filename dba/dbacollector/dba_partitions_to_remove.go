@@ -33,8 +33,8 @@ const (
 
 var (
 	globalPartitionsToRemoveDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(cl.Namespace, dba, "using_partitions"),
-		"Listing tables where partitions are used.",
+		prometheus.BuildFQName(cl.Namespace, dba, "partitions_to_remove"),
+		"Collect tables where partitions older than 3 month",
 		[]string{"schema", "table", "partition"}, nil,
 	)
 )
