@@ -77,7 +77,7 @@ func (ScrapePartitionsToRemove) Name() string {
 
 // Help describes the role of the Scraper.
 func (ScrapePartitionsToRemove) Help() string {
-	return "Collect tables where partitions are used"
+	return "Collect tables where partitions older than 3 month"
 }
 
 // Version of MySQL from which scraper is available.
