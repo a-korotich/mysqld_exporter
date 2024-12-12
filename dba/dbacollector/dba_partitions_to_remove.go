@@ -72,7 +72,7 @@ type ScrapePartitionsToRemove struct{}
 
 // Name of the Scraper. Should be unique.
 func (ScrapePartitionsToRemove) Name() string {
-	return "using_partitions"
+	return "partitions_to_remove"
 }
 
 // Help describes the role of the Scraper.
