@@ -15,10 +15,11 @@ require (
 	github.com/prometheus/common v0.67.5
 	github.com/prometheus/exporter-toolkit v0.15.1
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/stretchr/testify v1.11.1
-	github.com/tklauser/go-sysconf v0.3.16
-	golang.org/x/sys v0.41.0
-	gopkg.in/ini.v1 v1.67.1
+	github.com/stretchr/testify v1.10.0
+	github.com/tklauser/go-sysconf v0.3.15
+	golang.org/x/sys v0.33.0
+	gopkg.in/alecthomas/kingpin.v2 v2.2.6
+	gopkg.in/ini.v1 v1.66.6
 	gopkg.in/yaml.v2 v2.4.0
 )
 
