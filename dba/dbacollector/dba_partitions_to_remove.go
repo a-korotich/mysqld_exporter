@@ -38,8 +38,8 @@ WHERE STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") <= DATE(DATE_FORMAT(NOW
 var (
 	globalPartitionsToRemoveDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(cl.Namespace, dba, "partitions_to_remove"),
-		"Collect tables where partitions older than 3 month",
-		[]string{"schema", "table", "partition"}, nil,
+		"Collect tables where partitions older than 6 month",
+		[]string{"schema", "table", "partition","partitionSize"}, nil,
 	)
 )
 
@@ -52,7 +52,7 @@ func (ScrapePartitionsToRemove) Name() string {
 
 // Help describes the role of the Scraper.
 func (ScrapePartitionsToRemove) Help() string {
-	return "Collect tables where partitions older than 3 month"
+	return "Collect tables where partitions older than 6 month"
 }
 
 // Version of MySQL from which scraper is available.
