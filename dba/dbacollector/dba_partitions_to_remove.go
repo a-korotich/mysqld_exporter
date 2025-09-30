@@ -11,23 +11,27 @@ import (
 
 const (
 	PartitionsToRemoveQuery = `
-	SELECT
+SELECT
 	a.TABLE_SCHEMA,
 	a.TABLE_NAME,
 	a.PARTITION_NAME,
-	CAST(a.PARTITION_DESCRIPTION AS UNSIGNED)
-  FROM information_schema.PARTITIONS AS a
-  WHERE  STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") IS NULL
-  AND CAST(a.PARTITION_DESCRIPTION AS UNSIGNED) <= UNIX_TIMESTAMP(DATE_FORMAT(NOW() - INTERVAL 3 MONTH, '%Y-%m-01 00:00:00'))
-  UNION ALL
-  SELECT
+	ROUND((a.DATA_LENGTH + a.INDEX_LENGTH) / 1024 / 1024, 2) AS PARTITION_SIZE_MB,
+	CAST(a.PARTITION_DESCRIPTION AS UNSIGNED) AS PARTITION_TIMESTAMP
+FROM information_schema.PARTITIONS AS a
+WHERE STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") IS NULL
+  AND CAST(a.PARTITION_DESCRIPTION AS UNSIGNED) <= UNIX_TIMESTAMP(DATE_FORMAT(NOW() - INTERVAL 6 MONTH, '%Y-%m-01 00:00:00'))
+
+UNION ALL
+
+SELECT
 	a.TABLE_SCHEMA,
 	a.TABLE_NAME,
 	a.PARTITION_NAME,
-	UNIX_TIMESTAMP(STR_TO_DATE(REPLACE(PARTITION_DESCRIPTION, "'", ''), '%Y-%m-%d'))
-  FROM information_schema.PARTITIONS AS a
-  WHERE
-  STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") <= DATE(DATE_FORMAT(NOW() - INTERVAL 3 MONTH, '%Y-%m-01 00:00:00'))
+    ROUND((a.DATA_LENGTH + a.INDEX_LENGTH) / 1024 / 1024, 2) AS PARTITION_SIZE_MB,
+	UNIX_TIMESTAMP(STR_TO_DATE(REPLACE(a.PARTITION_DESCRIPTION, "'", ''), '%Y-%m-%d')) AS PARTITION_TIMESTAMP
+
+FROM information_schema.PARTITIONS AS a
+WHERE STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") <= DATE(DATE_FORMAT(NOW() - INTERVAL 6 MONTH, '%Y-%m-01 00:00:00'));
 `
 )
 
@@ -65,19 +69,19 @@ func (ScrapePartitionsToRemove) Scrape(ctx context.Context, db *sql.DB, ch chan<
 	defer partitionsToRemoveRows.Close()
 
 	var (
-		schema, table, partition string
+		schema, table, partition, partitionSize string
 		value                    float64
 	)
 
 	for partitionsToRemoveRows.Next() {
 		if err := partitionsToRemoveRows.Scan(
-			&schema, &table, &partition, &value,
+			&schema, &table, &partition, &partitionSize, &value,
 		); err != nil {
 			return err
 		}
 		ch <- prometheus.MustNewConstMetric(
 			globalPartitionsToRemoveDesc, prometheus.GaugeValue, value,
-			schema, table, partition,
+			schema, table, partition, partitionSize,
 		)
 	}
 	return nil
