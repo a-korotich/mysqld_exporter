@@ -19,7 +19,7 @@ SELECT
 	CAST(a.PARTITION_DESCRIPTION AS UNSIGNED) AS PARTITION_TIMESTAMP
 FROM information_schema.PARTITIONS AS a
 WHERE STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") IS NULL
-  AND CAST(a.PARTITION_DESCRIPTION AS UNSIGNED) <= UNIX_TIMESTAMP(DATE_FORMAT(NOW() - INTERVAL 6 MONTH, '%Y-%m-01 00:00:00'))
+  AND CAST(a.PARTITION_DESCRIPTION AS UNSIGNED) <= UNIX_TIMESTAMP(DATE_FORMAT(NOW() - INTERVAL 3 MONTH, '%Y-%m-01 00:00:00'))
 
 UNION ALL
 
@@ -31,7 +31,7 @@ SELECT
 	UNIX_TIMESTAMP(STR_TO_DATE(REPLACE(a.PARTITION_DESCRIPTION, "'", ''), '%Y-%m-%d')) AS PARTITION_TIMESTAMP
 
 FROM information_schema.PARTITIONS AS a
-WHERE STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") <= DATE(DATE_FORMAT(NOW() - INTERVAL 6 MONTH, '%Y-%m-01 00:00:00'));
+WHERE STR_TO_DATE(a.PARTITION_DESCRIPTION, "'%Y-%m-%d'") <= DATE(DATE_FORMAT(NOW() - INTERVAL 3 MONTH, '%Y-%m-01 00:00:00'));
 `
 )
 
@@ -39,7 +39,7 @@ var (
 	globalPartitionsToRemoveDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(cl.Namespace, dba, "partitions_to_remove"),
 		"Collect tables where partitions older than 6 month",
-		[]string{"schema", "table", "partition","partitionSize"}, nil,
+		[]string{"schema", "table", "partition", "partitionSize"}, nil,
 	)
 )
 
@@ -70,7 +70,7 @@ func (ScrapePartitionsToRemove) Scrape(ctx context.Context, db *sql.DB, ch chan<
 
 	var (
 		schema, table, partition, partitionSize string
-		value                    float64
+		value                                   float64
 	)
 
 	for partitionsToRemoveRows.Next() {
