@@ -13,11 +13,10 @@ const (
 	disabledEventsOnActiveNodeQuery = `
 		SELECT
 		e.EVENT_SCHEMA,
-		e.EVENT_NAME,
-		1 as value
+		e.EVENT_NAME
 		FROM information_schema.EVENTS e
 		WHERE TRUE
-		AND @@read_only <=> 0
+		AND @@read_only = 0
 		AND e.STATUS <> 'ENABLED'
 	`
 )
