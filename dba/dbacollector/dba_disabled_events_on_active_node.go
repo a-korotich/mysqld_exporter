@@ -55,13 +55,13 @@ func (ScrapeDisabledEventsOnActiveNode) Scrape(ctx context.Context, db *sql.DB, 
 	defer disabledEventsOnActiveNodeRows.Close()
 
 	var (
-		schema, table, name_blocked string
-		value                       float64
+		schema, event string
+		value         float64
 	)
 
 	for disabledEventsOnActiveNodeRows.Next() {
 		if err := disabledEventsOnActiveNodeRows.Scan(
-			&schema, &table, &value, &name_blocked,
+			&schema, &event,
 		); err != nil {
 			return err
 		}

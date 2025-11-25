@@ -57,13 +57,13 @@ func (ScrapeRountineMissing) Scrape(ctx context.Context, db *sql.DB, ch chan<- p
 	defer rountineMissingRows.Close()
 
 	var (
-		schema, table, name_blocked string
-		value                       float64
+		schema string
+		value  float64
 	)
 
 	for rountineMissingRows.Next() {
 		if err := rountineMissingRows.Scan(
-			&schema, &table, &value, &name_blocked,
+			&schema,
 		); err != nil {
 			return err
 		}
