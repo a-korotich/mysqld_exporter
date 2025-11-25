@@ -12,8 +12,9 @@ import (
 const (
 	disabledEventsOnActiveNodeQuery = `
 		SELECT
-		e.EVENT_SCHEMA AS schema,
-		e.EVENT_NAME AS event
+		e.EVENT_SCHEMA,
+		e.EVENT_NAME,
+		1 as value
 		FROM information_schema.EVENTS e
 		WHERE TRUE
 		AND @@read_only <=> 0
@@ -67,7 +68,7 @@ func (ScrapeDisabledEventsOnActiveNode) Scrape(ctx context.Context, db *sql.DB, 
 		}
 		ch <- prometheus.MustNewConstMetric(
 			disabledEventsOnActiveNodeDesc, prometheus.GaugeValue, value,
-			schema,
+			schema, event,
 		)
 	}
 	return nil
