@@ -11,7 +11,8 @@ import (
 
 const (
 	rountineMissingQuery = `
-		SELECT DISTINCT p.TABLE_SCHEMA AS schema
+		SELECT 
+			DISTINCT p.TABLE_SCHEMA
 		FROM information_schema.PARTITIONS p
 		LEFT JOIN (SELECT
 			r.ROUTINE_SCHEMA
