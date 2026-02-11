@@ -37,8 +37,8 @@ import (
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
 	"github.com/a-korotich/mysqld_exporter/collector"
+	"github.com/a-korotich/mysqld_exporter/config"
 	dba "github.com/a-korotich/mysqld_exporter/dba/dbacollector"
-	pcl "github.com/a-korotich/mysqld_exporter/percona/perconacollector"
 )
 
 var (
@@ -96,7 +96,7 @@ var scrapers = map[collector.Scraper]bool{
 	dba.ScrapeRountineMissing{}:                           false,
 	dba.ScrapeDisabledEventsOnActiveNode{}:                false,
 	dba.ScrapeOpenTables{}:                                false,
-	pcl.ScrapeGlobalStatus{}:                              false,
+	collector.PScrapeGlobalStatus{}:                       false, // by Percona
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
 	collector.ScrapePlugins{}:                             false,
