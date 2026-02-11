@@ -52,6 +52,8 @@ type instance struct {
 	versionMajorMinor float64
 }
 
+type Instance = instance
+
 func newInstance(dsn string) (*instance, error) {
 	i := &instance{}
 	db, err := sql.Open("mysql", dsn)
@@ -91,6 +93,10 @@ func newInstance(dsn string) (*instance, error) {
 
 // getDB returns the database connection for the instance.
 func (i *instance) getDB() *sql.DB {
+	return i.db
+}
+
+func (i *Instance) GetDB() *sql.DB {
 	return i.db
 }
 

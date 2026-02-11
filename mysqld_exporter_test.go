@@ -29,8 +29,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/a-korotich/mysqld_exporter/collector"
 	"github.com/google/go-cmp/cmp"
-	"github.com/percona/mysqld_exporter/collector"
 )
 
 // bin stores information about path of executable and attached port

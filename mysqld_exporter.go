@@ -37,8 +37,8 @@ import (
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
 	"github.com/a-korotich/mysqld_exporter/collector"
+	"github.com/a-korotich/mysqld_exporter/config"
 	dba "github.com/a-korotich/mysqld_exporter/dba/dbacollector"
-	pcl "github.com/a-korotich/mysqld_exporter/percona/perconacollector"
 )
 
 var (
@@ -71,61 +71,15 @@ var (
 		"Collect all metrics.",
 	).Default("false").Bool()
 
-	mysqlSSLCAFile = kingpin.Flag(
-		"mysql.ssl-ca-file",
-		"SSL CA file for the MySQL connection",
-	).ExistingFile()
-
-	mysqlSSLCertFile = kingpin.Flag(
-		"mysql.ssl-cert-file",
-		"SSL Cert file for the MySQL connection",
-	).ExistingFile()
-
-	mysqlSSLKeyFile = kingpin.Flag(
-		"mysql.ssl-key-file",
-		"SSL Key file for the MySQL connection",
-	).ExistingFile()
-
-	mysqlSSLSkipVerify = kingpin.Flag(
-		"mysql.ssl-skip-verify",
-		"Skip cert verification when connection to MySQL",
-	).Bool()
-	tlsInsecureSkipVerify = kingpin.Flag(
-		"tls.insecure-skip-verify",
-		"Ignore certificate and server verification when using a tls connection.",
-	).Bool()
-	dsn string
-)
-
-// SQL queries and parameters.
-const (
-	versionQuery = `SELECT @@version`
-
-	// System variable params formatting.
-	// See: https://github.com/go-sql-driver/mysql#system-variables
-	sessionSettingsParam = `log_slow_filter=%27tmp_table_on_disk,filesort_on_disk%27`
-	timeoutParam         = `lock_wait_timeout=%d`
-)
-
-type webAuth struct {
-	User     string `yaml:"server_user,omitempty"`
-	Password string `yaml:"server_password,omitempty"`
-}
-
-type basicAuthHandler struct {
-	handler  http.HandlerFunc
-	user     string
-	password string
-}
-
-func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	user, password, ok := r.BasicAuth()
-	if !ok || password != h.password || user != h.user {
-		w.Header().Set("WWW-Authenticate", "Basic realm=\"metrics\"")
-		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
-		return
+	// This adds the following flags: `--web.listen-address`, `--web.config.file`, `--web.systemd-socket (linux-only)`
+	toolkitFlags = webflag.AddFlags(kingpin.CommandLine, ":9104")
+	c            = config.MySqlConfigHandler{
+		Config: &config.Config{},
 	}
-	h.handler(w, r)
+)
+
+type errLogger struct {
+	logger *slog.Logger
 }
 
 func (el *errLogger) Println(v ...interface{}) {
@@ -142,7 +96,7 @@ var scrapers = map[collector.Scraper]bool{
 	dba.ScrapeRountineMissing{}:                           false,
 	dba.ScrapeDisabledEventsOnActiveNode{}:                false,
 	dba.ScrapeOpenTables{}:                                false,
-	pcl.ScrapeGlobalStatus{}:                              false,
+	collector.PScrapeGlobalStatus{}:                       false, // by Percona
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
 	collector.ScrapePlugins{}:                             false,
@@ -182,11 +136,11 @@ var scrapers = map[collector.Scraper]bool{
 	collector.ScrapeHeartbeat{}:                           false,
 	collector.ScrapeSlaveHosts{}:                          false,
 	collector.ScrapeReplicaHost{}:                         false,
-	pcl.ScrapeCustomQuery{Resolution: pcl.HR}:             false,
-	pcl.ScrapeCustomQuery{Resolution: pcl.MR}:             false,
-	pcl.ScrapeCustomQuery{Resolution: pcl.LR}:             false,
-	pcl.NewStandardGo():                                   false,
-	pcl.NewStandardProcess():                              false,
+	collector.ScrapeCustomQuery{Resolution: collector.HR}: false, // by Percona
+	collector.ScrapeCustomQuery{Resolution: collector.MR}: false, // by Percona
+	collector.ScrapeCustomQuery{Resolution: collector.LR}: false, // by Percona
+	collector.NewStandardGo():                             false, // by Percona
+	collector.NewStandardProcess():                        false, // by Percona
 }
 
 func filterScrapers(scrapers []collector.Scraper, collectParams []string) []collector.Scraper {
@@ -199,54 +153,10 @@ func filterScrapers(scrapers []collector.Scraper, collectParams []string) []coll
 			filters[param] = true
 		}
 
-// TODO Remove
-var scrapersLr = map[collector.Scraper]struct{}{
-	collector.ScrapeGlobalVariables{}:             {},
-	collector.ScrapePlugins{}:                     {},
-	collector.ScrapeTableSchema{}:                 {},
-	collector.ScrapeAutoIncrementColumns{}:        {},
-	collector.ScrapeBinlogSize{}:                  {},
-	collector.ScrapePerfTableIOWaits{}:            {},
-	collector.ScrapePerfIndexIOWaits{}:            {},
-	collector.ScrapePerfFileInstances{}:           {},
-	collector.ScrapeUserStat{}:                    {},
-	collector.ScrapeTableStat{}:                   {},
-	collector.ScrapePerfEventsStatements{}:        {},
-	collector.ScrapeClientStat{}:                  {},
-	collector.ScrapeInfoSchemaInnodbTablespaces{}: {},
-	collector.ScrapeEngineTokudbStatus{}:          {},
-	collector.ScrapeHeartbeat{}:                   {},
-	pcl.ScrapeCustomQuery{Resolution: pcl.LR}:     {},
-}
-
-func parseMycnf(config interface{}, logger log.Logger) (string, error) {
-	var dsn string
-	opts := ini.LoadOptions{
-		// MySQL ini file can have boolean keys.
-		// PMM-2469: my.cnf can have boolean keys.
-		AllowBooleanKeys: true,
-	}
-	cfg, err := ini.LoadSources(opts, config)
-	if err != nil {
-		return dsn, fmt.Errorf("failed reading ini file: %s", err)
-	}
-	user := cfg.Section("client").Key("user").String()
-	password := cfg.Section("client").Key("password").String()
-	if user == "" {
-		return dsn, fmt.Errorf("no user specified under [client] in %s", config)
-	}
-	host := cfg.Section("client").Key("host").MustString("localhost")
-	port := cfg.Section("client").Key("port").MustUint(3306)
-	socket := cfg.Section("client").Key("socket").String()
-	sslCA := cfg.Section("client").Key("ssl-ca").String()
-	sslCert := cfg.Section("client").Key("ssl-cert").String()
-	sslKey := cfg.Section("client").Key("ssl-key").String()
-	passwordPart := ""
-	if password != "" {
-		passwordPart = ":" + password
-	} else {
-		if sslKey == "" {
-			return dsn, fmt.Errorf("password or ssl-key should be specified under [client] in %s", config)
+		for _, scraper := range scrapers {
+			if filters[scraper.Name()] {
+				filteredScrapers = append(filteredScrapers, scraper)
+			}
 		}
 	}
 	if len(filteredScrapers) == 0 {

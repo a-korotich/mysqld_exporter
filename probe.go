@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/percona/mysqld_exporter/collector"
+	"github.com/a-korotich/mysqld_exporter/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

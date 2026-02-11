@@ -2,10 +2,9 @@ package dbacollector
 
 import (
 	"context"
-	"database/sql"
+	"log/slog"
 
 	cl "github.com/a-korotich/mysqld_exporter/collector"
-	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -41,7 +40,8 @@ func (ScrapeOpenTables) Version() float64 {
 }
 
 // Scrape collects data from database connection and sends it over channel as prometheus metric.
-func (ScrapeOpenTables) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometheus.Metric, logger log.Logger) error {
+func (ScrapeOpenTables) Scrape(ctx context.Context, instance *cl.Instance, ch chan<- prometheus.Metric, logger *slog.Logger) error {
+	db := instance.GetDB()
 	openTablesRows, err := db.QueryContext(ctx, OpenTablesQuery)
 	if err != nil {
 		return err
