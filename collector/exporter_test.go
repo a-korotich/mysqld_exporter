@@ -15,38 +15,28 @@ package collector
 
 import (
 	"context"
-	"database/sql"
-	"os"
 	"testing"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
+	"github.com/prometheus/common/promslog"
 	"github.com/smartystreets/goconvey/convey"
 )
 
-const dsn = "root@/mysql"
+const dsn = "root@tcp(localhost:3306)/mysql"
 
 func TestExporter(t *testing.T) {
 	if testing.Short() {
 		t.Skip("-short is passed, skipping test")
 	}
 
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-
 	exporter := New(
 		context.Background(),
-		db,
-		NewMetrics(""),
+		dsn,
 		[]Scraper{
 			ScrapeGlobalStatus{},
 		},
-		log.NewNopLogger(),
+		promslog.NewNopLogger(),
 	)
 
 	convey.Convey("Metrics describing", t, func() {
@@ -76,19 +66,69 @@ func TestExporter(t *testing.T) {
 	})
 }
 
+func TestExporterDSN(t *testing.T) {
+	convey.Convey("DSN with special characters in password (w/o table)", t, func() {
+		dsn := "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/"
+		exporter := New(
+			context.Background(),
+			dsn,
+			[]Scraper{
+				ScrapeGlobalStatus{},
+			},
+			promslog.NewNopLogger(),
+		)
+		convey.So(exporter.dsn, convey.ShouldEqual, "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/?lock_wait_timeout=0")
+	})
+
+	convey.Convey("DSN with special characters in password (with table)", t, func() {
+		dsn := "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/mysql"
+		exporter := New(
+			context.Background(),
+			dsn,
+			[]Scraper{
+				ScrapeGlobalStatus{},
+			},
+			promslog.NewNopLogger(),
+		)
+		convey.So(exporter.dsn, convey.ShouldEqual, "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/mysql?lock_wait_timeout=0")
+	})
+
+	convey.Convey("DSN with special characters in password, with tls", t, func() {
+		dsn := "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/?tls=true"
+		exporter := New(
+			context.Background(),
+			dsn,
+			[]Scraper{
+				ScrapeGlobalStatus{},
+			},
+			promslog.NewNopLogger(),
+		)
+		convey.So(exporter.dsn, convey.ShouldEqual, "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/?tls=true&lock_wait_timeout=0")
+	})
+
+	convey.Convey("DSN with special characters in password, no tls", t, func() {
+		dsn := "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/test?tls=skip-verify"
+		exporter := New(
+			context.Background(),
+			dsn,
+			[]Scraper{
+				ScrapeGlobalStatus{},
+			},
+			promslog.NewNopLogger(),
+		)
+		convey.So(exporter.dsn, convey.ShouldEqual, "test:UfY9s73Gx`~!?@#$%^&*(){}[]<>|/:;,.-_+=@tcp(localhost:3306)/test?tls=skip-verify&lock_wait_timeout=0")
+	})
+}
+
 func TestGetMySQLVersion(t *testing.T) {
 	if testing.Short() {
 		t.Skip("-short is passed, skipping test")
 	}
 
-	logger := log.NewLogfmtLogger(os.Stderr)
-	logger = level.NewFilter(logger, level.AllowDebug())
-
 	convey.Convey("Version parsing", t, func() {
-		db, err := sql.Open("mysql", dsn)
+		instance, err := newInstance(dsn)
 		convey.So(err, convey.ShouldBeNil)
-		defer db.Close()
 
-		convey.So(getMySQLVersion(db, logger), convey.ShouldBeBetweenOrEqual, 5.5, 11.0)
+		convey.So(instance.versionMajorMinor, convey.ShouldBeBetweenOrEqual, 5.7, 11.4)
 	})
 }

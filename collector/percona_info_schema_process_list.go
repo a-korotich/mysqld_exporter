@@ -1,4 +1,4 @@
-// Copyright 2018 The Prometheus Authors
+// Copyright 2018 The Prometheus Authors, 2023 Percona LLC
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,21 +13,19 @@
 
 // Scrape `information_schema.processlist`.
 
-package perconacollector
+package collector
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/go-kit/log"
-	cl "github.com/a-korotich/mysqld_exporter/collector"
+	"github.com/alecthomas/kingpin/v2"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/alecthomas/kingpin.v2"
 )
 
-const infoSchemaProcesslistQuery = `
+const pInfoSchemaProcesslistQuery = `
 		SELECT COALESCE(command,''),COALESCE(state,''),count(*),sum(time)
 		  FROM information_schema.processlist
 		  WHERE ID != connection_id()
@@ -38,17 +36,17 @@ const infoSchemaProcesslistQuery = `
 
 // Tunable flags.
 var (
-	processlistMinTime = kingpin.Flag(
+	pProcesslistMinTime = kingpin.Flag(
 		"collect.info_schema.processlist.min_time",
 		"Minimum time a thread must be in each state to be counted",
 	).Default("0").Int()
 	// Prometheus descriptors.
-	processlistCountDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "threads"),
+	pProcesslistCountDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(Namespace, InformationSchema, "threads"),
 		"The number of threads (connections) split by current state.",
 		[]string{"state"}, nil)
-	processlistTimeDesc = prometheus.NewDesc(
-		prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "threads_seconds"),
+	pProcesslistTimeDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(Namespace, InformationSchema, "threads_seconds"),
 		"The number of seconds threads (connections) have used split by current state.",
 		[]string{"state"}, nil)
 )
@@ -167,30 +165,31 @@ func deriveThreadState(command string, state string) string {
 	return "other"
 }
 
-// ScrapeProcesslist collects from `information_schema.processlist`.
-type ScrapeProcesslist struct{}
+// PScrapeProcesslist collects from `information_schema.processlist`.
+type PScrapeProcesslist struct{}
 
 // Name of the Scraper. Should be unique.
-func (ScrapeProcesslist) Name() string {
-	return cl.InformationSchema + ".processlist"
+func (PScrapeProcesslist) Name() string {
+	return InformationSchema + ".processlist"
 }
 
 // Help describes the role of the Scraper.
-func (ScrapeProcesslist) Help() string {
+func (PScrapeProcesslist) Help() string {
 	return "Collect current thread state counts from the information_schema.processlist"
 }
 
 // Version of MySQL from which scraper is available.
-func (ScrapeProcesslist) Version() float64 {
+func (PScrapeProcesslist) Version() float64 {
 	return 5.1
 }
 
 // Scrape collects data from database connection and sends it over channel as prometheus metric.
-func (ScrapeProcesslist) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometheus.Metric, logger log.Logger) error {
+func (PScrapeProcesslist) Scrape(ctx context.Context, instance *instance, ch chan<- prometheus.Metric, logger *slog.Logger) error {
 	processQuery := fmt.Sprintf(
-		infoSchemaProcesslistQuery,
-		*processlistMinTime,
+		pInfoSchemaProcesslistQuery,
+		*pProcesslistMinTime,
 	)
+	db := instance.getDB()
 	processlistRows, err := db.QueryContext(ctx, processQuery)
 	if err != nil {
 		return err
@@ -222,14 +221,14 @@ func (ScrapeProcesslist) Scrape(ctx context.Context, db *sql.DB, ch chan<- prome
 	}
 
 	for state, count := range stateCounts {
-		ch <- prometheus.MustNewConstMetric(processlistCountDesc, prometheus.GaugeValue, float64(count), state)
+		ch <- prometheus.MustNewConstMetric(pProcesslistCountDesc, prometheus.GaugeValue, float64(count), state)
 	}
 	for state, time := range stateTime {
-		ch <- prometheus.MustNewConstMetric(processlistTimeDesc, prometheus.GaugeValue, float64(time), state)
+		ch <- prometheus.MustNewConstMetric(pProcesslistTimeDesc, prometheus.GaugeValue, float64(time), state)
 	}
 
 	return nil
 }
 
 // check interface
-var _ cl.Scraper = ScrapeProcesslist{}
+var _ Scraper = PScrapeProcesslist{}

@@ -1,4 +1,4 @@
-// Copyright 2018 The Prometheus Authors
+// Copyright 2018 The Prometheus Authors, 2023 Percona LLC
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -13,21 +13,18 @@
 
 // Scrape `information_schema.INNODB_CMP`.
 
-package perconacollector
+package collector
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 
-	"github.com/go-kit/log"
-	"github.com/go-kit/log/level"
-	cl "github.com/a-korotich/mysqld_exporter/collector"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const innodbCmpQuery = `
+const pInnodbCmpQuery = `
 		SELECT
 		  page_size, compress_ops, compress_ops_ok, compress_time, uncompress_ops, uncompress_time
 		  FROM information_schema.innodb_cmp
@@ -41,59 +38,60 @@ var informationSchemaInnodbCmpTypes = map[string]struct {
 }{
 	"compress_ops": {
 		prometheus.CounterValue,
-		prometheus.NewDesc(prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "innodb_cmp_compress_ops_total"),
+		prometheus.NewDesc(prometheus.BuildFQName(Namespace, InformationSchema, "innodb_cmp_compress_ops_total"),
 			"Number of times a B-tree page of the size PAGE_SIZE has been compressed.",
 			[]string{"page_size"}, nil),
 	},
 	"compress_ops_ok": {
 		prometheus.CounterValue,
-		prometheus.NewDesc(prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "innodb_cmp_compress_ops_ok_total"),
+		prometheus.NewDesc(prometheus.BuildFQName(Namespace, InformationSchema, "innodb_cmp_compress_ops_ok_total"),
 			"Number of times a B-tree page of the size PAGE_SIZE has been successfully compressed.",
 			[]string{"page_size"}, nil),
 	},
 	"compress_time": {
 		prometheus.CounterValue,
-		prometheus.NewDesc(prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "innodb_cmp_compress_time_seconds_total"),
+		prometheus.NewDesc(prometheus.BuildFQName(Namespace, InformationSchema, "innodb_cmp_compress_time_seconds_total"),
 			"Total time in seconds spent in attempts to compress B-tree pages.",
 			[]string{"page_size"}, nil),
 	},
 	"uncompress_ops": {
 		prometheus.CounterValue,
-		prometheus.NewDesc(prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "innodb_cmp_uncompress_ops_total"),
+		prometheus.NewDesc(prometheus.BuildFQName(Namespace, InformationSchema, "innodb_cmp_uncompress_ops_total"),
 			"Number of times a B-tree page has been uncompressed.",
 			[]string{"page_size"}, nil),
 	},
 	"uncompress_time": {
 		prometheus.CounterValue,
-		prometheus.NewDesc(prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, "innodb_cmp_uncompress_time_seconds_total"),
+		prometheus.NewDesc(prometheus.BuildFQName(Namespace, InformationSchema, "innodb_cmp_uncompress_time_seconds_total"),
 			"Total time in seconds spent in uncompressing B-tree pages.",
 			[]string{"page_size"}, nil),
 	},
 }
 
-// ScrapeInnodbCmp collects from `information_schema.innodb_cmp`.
-type ScrapeInnodbCmp struct{}
+// PScrapeInnodbCmp collects from `information_schema.innodb_cmp`.
+type PScrapeInnodbCmp struct{}
 
 // Name of the Scraper. Should be unique.
-func (ScrapeInnodbCmp) Name() string {
+func (PScrapeInnodbCmp) Name() string {
 	return "info_schema.innodb_cmp"
 }
 
 // Help describes the role of the Scraper.
-func (ScrapeInnodbCmp) Help() string {
+func (PScrapeInnodbCmp) Help() string {
 	return "Please set next variables SET GLOBAL innodb_file_per_table=1;SET GLOBAL innodb_file_format=Barracuda;"
 }
 
 // Version of MySQL from which scraper is available.
-func (ScrapeInnodbCmp) Version() float64 {
+func (PScrapeInnodbCmp) Version() float64 {
 	return 5.5
 }
 
 // Scrape collects data from database connection and sends it over channel as prometheus metric.
-func (ScrapeInnodbCmp) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometheus.Metric, logger log.Logger) error {
-	informationSchemaInnodbCmpRows, err := db.QueryContext(ctx, innodbCmpQuery)
+func (PScrapeInnodbCmp) Scrape(ctx context.Context, instance *instance, ch chan<- prometheus.Metric, logger *slog.Logger) error {
+	db := instance.getDB()
+	informationSchemaInnodbCmpRows, err := db.QueryContext(ctx, pInnodbCmpQuery)
 	if err != nil {
-		level.Debug(logger).Log("msg", "INNODB_CMP stats are not available.", "error", err)
+		logger.Debug("msg", "INNODB_CMP stats are not available.", err)
 		return err
 	}
 	defer informationSchemaInnodbCmpRows.Close()
@@ -104,7 +102,7 @@ func (ScrapeInnodbCmp) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometh
 	// To map metrics to names therefore we always range over columnNames[1:]
 	columnNames, err := informationSchemaInnodbCmpRows.Columns()
 	if err != nil {
-		level.Debug(logger).Log("msg", "INNODB_CMP stats are not available.", "error", err)
+		logger.Debug("msg", "INNODB_CMP stats are not available.", err)
 		return err
 	}
 
@@ -132,7 +130,7 @@ func (ScrapeInnodbCmp) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometh
 				ch <- prometheus.MustNewConstMetric(metricType.desc, metricType.vtype, float64(clientStatData[idx]), client)
 			} else {
 				// Unknown metric. Report as untyped.
-				desc := prometheus.NewDesc(prometheus.BuildFQName(cl.Namespace, cl.InformationSchema, fmt.Sprintf("innodb_cmp_%s", strings.ToLower(columnName))), fmt.Sprintf("Unsupported metric from column %s", columnName), []string{"page_size"}, nil)
+				desc := prometheus.NewDesc(prometheus.BuildFQName(Namespace, InformationSchema, fmt.Sprintf("innodb_cmp_%s", strings.ToLower(columnName))), fmt.Sprintf("Unsupported metric from column %s", columnName), []string{"page_size"}, nil)
 				ch <- prometheus.MustNewConstMetric(desc, prometheus.UntypedValue, float64(clientStatData[idx]), client)
 			}
 		}
@@ -142,4 +140,4 @@ func (ScrapeInnodbCmp) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometh
 }
 
 // check interface
-var _ cl.Scraper = ScrapeInnodbCmp{}
+var _ Scraper = PScrapeInnodbCmp{}

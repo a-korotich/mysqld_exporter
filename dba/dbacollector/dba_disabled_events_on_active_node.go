@@ -2,10 +2,9 @@ package dbacollector
 
 import (
 	"context"
-	"database/sql"
+	"log/slog"
 
 	cl "github.com/a-korotich/mysqld_exporter/collector"
-	"github.com/go-kit/log"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -47,7 +46,8 @@ func (ScrapeDisabledEventsOnActiveNode) Version() float64 {
 }
 
 // Scrape collects data from database connection and sends it over channel as prometheus metric.
-func (ScrapeDisabledEventsOnActiveNode) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometheus.Metric, logger log.Logger) error {
+func (ScrapeDisabledEventsOnActiveNode) Scrape(ctx context.Context, instance *cl.Instance, ch chan<- prometheus.Metric, logger *slog.Logger) error {
+	db := instance.GetDB()
 	disabledEventsOnActiveNodeRows, err := db.QueryContext(ctx, disabledEventsOnActiveNodeQuery)
 	if err != nil {
 		return err

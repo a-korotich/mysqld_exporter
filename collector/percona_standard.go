@@ -1,4 +1,4 @@
-// Copyright 2018 The Prometheus Authors
+// Copyright 2018 The Prometheus Authors, 2023 Percona LLC
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -11,14 +11,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package perconacollector
+package collector
 
 import (
 	"context"
-	"database/sql"
+	"log/slog"
 
-	"github.com/go-kit/log"
-	cl "github.com/a-korotich/mysqld_exporter/collector"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 )
@@ -27,7 +25,7 @@ type standardGo struct {
 	c prometheus.Collector
 }
 
-func NewStandardGo() cl.Scraper {
+func NewStandardGo() Scraper {
 	return standardGo{
 		c: collectors.NewGoCollector(),
 	}
@@ -49,7 +47,7 @@ func (standardGo) Version() float64 {
 }
 
 // Scrape collects data.
-func (s standardGo) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometheus.Metric, logger log.Logger) error {
+func (s standardGo) Scrape(ctx context.Context, instance *instance, ch chan<- prometheus.Metric, logger *slog.Logger) error {
 	s.c.Collect(ch)
 	return nil
 }
@@ -58,7 +56,7 @@ type standardProcess struct {
 	c prometheus.Collector
 }
 
-func NewStandardProcess() cl.Scraper {
+func NewStandardProcess() Scraper {
 	return standardProcess{
 		c: collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
 	}
@@ -80,7 +78,7 @@ func (standardProcess) Version() float64 {
 }
 
 // Scrape collects data.
-func (s standardProcess) Scrape(ctx context.Context, db *sql.DB, ch chan<- prometheus.Metric, logger log.Logger) error {
+func (s standardProcess) Scrape(ctx context.Context, instance *instance, ch chan<- prometheus.Metric, logger *slog.Logger) error {
 	s.c.Collect(ch)
 	return nil
 }
