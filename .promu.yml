@@ -3,7 +3,7 @@ go:
     # be updated.
     version: 1.23
 repository:
-    path: github.com/percona/mysqld_exporter
+    path: github.com/a-korotich/mysqld_exporter
 build:
     ldflags: |
         -X github.com/prometheus/common/version.Version={{.Version}}

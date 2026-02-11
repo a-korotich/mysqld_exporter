@@ -36,8 +36,9 @@ import (
 	"github.com/prometheus/exporter-toolkit/web"
 	webflag "github.com/prometheus/exporter-toolkit/web/kingpinflag"
 
-	"github.com/percona/mysqld_exporter/collector"
-	"github.com/percona/mysqld_exporter/config"
+	"github.com/a-korotich/mysqld_exporter/collector"
+	dba "github.com/a-korotich/mysqld_exporter/dba/dbacollector"
+	pcl "github.com/a-korotich/mysqld_exporter/percona/perconacollector"
 )
 
 var (
@@ -89,7 +90,13 @@ var _ promhttp.Logger = &errLogger{}
 
 // scrapers lists all possible collection methods and if they should be enabled by default.
 var scrapers = map[collector.Scraper]bool{
-	collector.PScrapeGlobalStatus{}:                       false, // by Percona
+	dba.ScrapeStatColumnCapacityColumns{}:                 false,
+	dba.ScrapeUsingPartitions{}:                           false,
+	dba.ScrapePartitionsToRemove{}:                        false,
+	dba.ScrapeRountineMissing{}:                           false,
+	dba.ScrapeDisabledEventsOnActiveNode{}:                false,
+	dba.ScrapeOpenTables{}:                                false,
+	pcl.ScrapeGlobalStatus{}:                              false,
 	collector.ScrapeGlobalStatus{}:                        false,
 	collector.ScrapeGlobalVariables{}:                     false,
 	collector.ScrapePlugins{}:                             false,
