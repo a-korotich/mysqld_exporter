@@ -22,6 +22,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 )
 
+require github.com/go-logfmt/logfmt v0.5.1 // indirect
+
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alecthomas/units v0.0.0-20240927000941-0f3dac36c52b // indirect
@@ -29,6 +31,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/go-kit/log v0.2.1
 	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
